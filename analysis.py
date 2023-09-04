@@ -118,7 +118,6 @@ def checkHiggs(batch):
 @numba.jit(nopython=True)
 def preselection(batch):
     pass_selection = np.full((len(batch),), False)
-    # TODO make it need a unique charge
     for i in range(len(batch)):
         nElectrons = 0
         nMuons = 0
@@ -153,7 +152,8 @@ def preselection(batch):
             if charges_m[0] == charges_m[1]:
                 n_sameQ += 1
 
-        if nElectrons + nMuons == 3 and nJets < 5 and n_sameQ > 0:
+        #if nElectrons + nMuons == 3 and nJets < 5 and n_sameQ > 0:
+        if nElectrons + nMuons == 3 and nJets < 5:
             charges = charges_m + charges_e
             if charges[0] == charges[1] == charges[2]:
                 pass_selection[i] = False
@@ -760,149 +760,149 @@ def node_outputs(y_test, y_pred):
              [bkg_dist_truthVH, bkg_dist_truthWWW, bkg_dist_truthbkg]]
 
     return lists
-def plot_nodes(y_test, y_pred, y_test_EFT=None, y_pred_EFT=None, weight_EFT=None, name=None):
-    listsSM = node_outputs(y_test, y_pred)
-
-    names = ["VH", "WWW", 'bkg']
-    weight_sig, weight_bkg, lumi = get_weights()  # weights & luminosity
-
-    if y_test_EFT is not None:
-            listsEFT = node_outputs(y_test_EFT, y_pred_EFT)
-
-    for i in range(0, 3):
-        listSM = listsSM[i]
-
-        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-        bins = np.linspace(0., 1., 40)
-        ax.hist(listSM, color=['purple', 'lime', 'cyan'], bins=bins,
-                weights=[np.full(len(listSM[0]), weight_sig),
-                         np.full(len(listSM[1]), weight_sig),
-                         np.full(len(listSM[2]), weight_bkg)],
-                histtype='step', linewidth=5, label=["VH", "WWW", "bkg"])
-        if y_test_EFT is not None:
-            listEFT = listsEFT[i]
-            ax.hist(listEFT, color=['red', 'yellow', 'blue'], bins=bins,
-                    weights=[np.full(len(listEFT[0]), weight_EFT),
-                             np.full(len(listEFT[1]), weight_EFT),
-                             np.full(len(listEFT[2]), weight_bkg)],
-                    histtype='step', linewidth=5, label=["VH", "WWW", "bkg"])
-            ax.set_xlabel(f"Network Output Distribution for {names[i]} for EFT {name}")
-        else:
-            ax.set_xlabel(f"Network Output Distribution for {names[i]}")
-
-        ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % lumi, transform=ax.transAxes)
-        ax.set_yscale("log")
-        ax.set_ylabel("Entries")
-        ax.legend()
-        if y_test_EFT is not None:
-            plt.savefig(
-                f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/{names[i]}_EFT_{name}_node.png")
-        else:
-            plt.savefig(
-                f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/{names[i]}_node.png")
-        plt.show()
-
-@numba.jit(nopython=True)
-def EFT_s_over_b(y_test, y_pred, weightEFT, weight_sig=get_weights()[0]):
-    SM_dist_truthSM, \
-        SM_dist_truthEFT, \
-        EFT_dist_truthSM, \
-        EFT_dist_truthEFT = get_EFT_nodes(y_test, y_pred)
-
-    EFT_dist_truthEFT.sort() #put in ascending order
-    EFT_dist_truthSM.sort()
-
-    #we compute amount of EFT events at EFT node versus amount of SM events
-    #SM gets the type 1, EFT gets type 0
-    #the EFTs should be classified near 0
-    optlist = []
-    for i in range(0, len(EFT_dist_truthEFT)):
-        optlist.append([EFT_dist_truthEFT[i], weightEFT])
 
 
-    #optlist = optlist[::-1]  # reverse the lists - now descending order
-    #bkglist = bkglist[::-1]
-
-    n_sig = 4 / weightEFT  # number of signals to get to 4 events
-
-    optlist = optlist[0:int(n_sig)]  # cut signal at 4 events
-
-    #we are using EFT truth SM as the background
-    signals = [i[0] for i in optlist]
-    value = min(signals)  # cutoff value
-    EFT_dist_truthSM[:] = [x for x in EFT_dist_truthEFT if x <= value]  # slice bkg at cutoff
-
-    if len(EFT_dist_truthSM) < 1:
-        return 1  # common error if no items in bkglist
+def plot_nodes(y_pred, y_array, label):
+    if label == 'VH':
+        position = 0
+    elif label == 'WWW':
+        position = 1
     else:
-        index = EFT_dist_truthSM.index(min(EFT_dist_truthSM))  # location of item at cutoff
+        position = 2
 
-        n_bkg = index * weight_sig #number bkg events when 4 signal events
+    weight_sig, weight_bkg, lumi = get_weights()
+    y_pred = [i[position] for i in y_pred]
+    y_array = [i[position] for i in y_array]
+    y_pred_array = []
+    y_bkg_array = []
+    for i in range(0, len(y_pred)):
+        if y_array[i] == 1.0:  # signal
+            y_pred_array.append(y_pred[i])
 
-        if n_bkg > 0:
-            s_over_bkg_EFT = n_sig / n_bkg
-        else:
-            s_over_bkg_EFT = 1  # when no bkg
+        if y_array[i] == 0.0:
+            y_bkg_array.append(y_pred[i])
 
-    return s_over_bkg_EFT
+    fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+    bins = np.linspace(0, 1, 40)
+    ax.hist([y_pred_array, y_bkg_array], color=['red', 'blue'],
+            bins=bins,
+            histtype='step',
+            label=[f"predicted {label}", f"predicted not {label}"])
+    ax.set_yscale('log')
+    ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % lumi, transform=ax.transAxes)
+    ax.set_xlabel(label)
+    ax.set_ylabel("Entries")
+    ax.legend()
+    plt.show()
 
 @numba.jit(nopython=True)
 def get_EFT_nodes(y_test, y_pred):
-    SM_dist_truthSM = []
-    SM_dist_truthEFT = []
-    for i in range(0, len(y_pred)):
-        if y_test[i] == 1:
-            SM_dist_truthSM.append(y_pred[i])
-        elif y_test[i] == 0:
-            SM_dist_truthEFT.append(y_pred[i])
-    EFT_dist_truthEFT = []
-    EFT_dist_truthSM = []
-    for i in range(0, len(y_pred)):
-        if y_test[i] == 1:
-            EFT_dist_truthSM.append(y_pred[i])
-        elif y_test[i] == 0:
-            EFT_dist_truthEFT.append(y_pred[i])
 
-    return SM_dist_truthSM, SM_dist_truthEFT, \
-        EFT_dist_truthSM, EFT_dist_truthEFT
+    SM_dist = []
+    EFT_dist = []
+    for i in range(0, len(y_pred)):
+        if y_test[i] == 1:
+            SM_dist.append(y_pred[i])
+        elif y_test[i] == 0:
+            EFT_dist.append(y_pred[i])
+
+    return SM_dist, EFT_dist
+
+@numba.jit(nopython=True)
+def EFT_s_over_b(type, y_test, y_pred, weightEFT, weight_sig=get_weights()[0], graph=False):
+
+    SM_dist, EFT_dist = get_EFT_nodes(y_test, y_pred)
+    SM_dist = np.array(SM_dist)
+    EFT_dist = np.array(EFT_dist)
+
+    if type == 'EFT':
+        SM_dist_sorted = np.sort(SM_dist)
+        EFT_dist_sorted = np.sort(EFT_dist)
+
+
+        sum_sig = 0
+        # get number of events detected to 4
+        for i in range(0, len(EFT_dist_sorted)):
+            while sum_sig < 4:
+                sum_sig += (EFT_dist_sorted[i]) * (weightEFT)
+            index = i
+        index = index
+
+        value = EFT_dist_sorted[index]
+
+        SM_cut = [x for x in SM_dist_sorted if x < value] # df of all events identified as type but actually aren't
+        sum_bkg = sum([i for i in SM_cut]) * weight_sig
+
+        s_over_b = sum_sig / sum_bkg
+
+    elif type == 'SM':
+        SM_dist = np.sort(SM_dist)[::-1]
+        EFT_dist = np.sort(EFT_dist)[::-1]
+
+
+        sum_sig = 0
+        # get number of events detected to 4
+        for i in range(0, len(SM_dist)):
+            while sum_sig < 4:
+                sum_sig += (SM_dist[i]) * (weight_sig)
+            index = i
+        index = index
+
+        value = SM_dist[index]
+
+        EFT_cut = [x for x in EFT_dist if x > value]  # df of all events identified as type but actually aren't
+        sum_bkg = sum([i for i in EFT_cut]) * weightEFT
+
+        s_over_b = sum_sig / sum_bkg
+
+    #if graph is not False:
+    #
+    #    fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+    #    bins = np.linspace(0, 1, 40)
+    #    if type == 'SM'
+    #       ax.hist([EFT_dist[0:index], SM_cut],
+        #            color=['red', 'blue'],
+        #            bins=bins,
+        #            histtype='step',
+        #            label=[f"predicted EFT", f"predicted not EFT"])
+    #       ax.set_xlabel(f"EFT node")
+
+    #   elif type == 'EFT':
+    #       ax.hist([SM_dist[0:index], EFT_cut],
+        #            color=['red', 'blue'],
+        #            bins=bins,
+        #            histtype='step',
+        #            label=[f"predicted SM", f"predicted not SM"])
+    #       ax.set_xlabel(f"SM node")
+    #    ax.set_yscale('log')
+    #    ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % 400, transform=ax.transAxes)
+
+    #    ax.set_ylabel("Entries")
+    #    ax.legend()
+    #    plt.show()
+
+    return s_over_b
+
 
 def plot_nodes_2(y_test, y_pred, weightEFT):
-    SM_dist_truthSM, \
-        SM_dist_truthEFT, \
-        EFT_dist_truthSM, \
-        EFT_dist_truthEFT = get_EFT_nodes(y_test, y_pred)
+    SM_dist, EFT_dist = get_EFT_nodes(y_test, y_pred)
 
     weight_sig, weight_bkg, lumi = get_weights()  # weights & luminosity
 
     names = ["SM", "EFT"]
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
     bins = np.linspace(0, 1, 40)
-    ax.hist([SM_dist_truthSM, SM_dist_truthEFT], color=['purple', 'cyan'], bins=bins,
-            weights=[np.full(len(SM_dist_truthSM), weight_sig),
-                     np.full(len(SM_dist_truthEFT), weightEFT)],
+    ax.hist([SM_dist, EFT_dist], color=['purple', 'cyan'], bins=bins,
+            weights=[np.full(len(SM_dist), weight_sig),
+                     np.full(len(EFT_dist), weightEFT)],
             histtype='step', linewidth=5, label=["truth SM", "truth EFT"])
     ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % lumi, transform=ax.transAxes)
-    ax.set_xlabel(f"Network Output Distribution for SM Node")
+    ax.set_xlabel(f"Network Output Distribution for Node")
     #ax.set_yscale("log")
     ax.set_ylabel("Entries")
     ax.legend()
     plt.savefig(
         f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/SM_node.png")
-    plt.show()
-
-    fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-    bins = np.linspace(0, 1, 40)
-    ax.hist([EFT_dist_truthSM, EFT_dist_truthEFT], color=['purple', 'lime'], bins=bins,
-            weights=[np.full(len(EFT_dist_truthSM), weight_sig),
-                     np.full(len(EFT_dist_truthEFT), weightEFT)],
-            histtype='step', linewidth=5, label=["truth SM", "truth EFT"])
-    ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % lumi, transform=ax.transAxes)
-    ax.set_xlabel(f"Network Output Distribution for EFT Node")
-    ax.set_yscale("log")
-    ax.set_ylabel("Entries")
-    ax.legend()
-    plt.savefig(
-        f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/EFT_node.png")
     plt.show()
 
 def sigoverbkg(type, y_pred, y_test, weight=get_weights()[0], name_trial=None, y_pred_EFT=None,
@@ -973,7 +973,6 @@ def sigoverbkg(type, y_pred, y_test, weight=get_weights()[0], name_trial=None, y
         X_dist_truthX_EFT[:] = [x for x in X_dist_truthX_EFT if x >= value]  # slice at cutoff
         X_dist_truthbkg_EFT[:] = [x for x in X_dist_truthbkg_EFT if x >= value]  # slice at cutoff
 
-    # TODO make graphs only print if variable in input set to True, default False
     if graph is not False:    # use this to check cutoff is correct
         fig, ax = plt.subplots(1, 1, figsize=(12, 6))
         bins = np.linspace(0.95, 1, 40)
@@ -1181,19 +1180,6 @@ def pre_processing(root_signal, root_bkg, name):
     df_p = df_selection(df_p)
     df_p.to_csv(f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/df_preprocessed_{name}.csv",
                 index=False)
-
-def plot_modelhistory(model_history, metric):
-    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
-    ax.plot(np.sqrt(model_history.history[metric]), 'r', label='Training Data')
-    ax.plot(np.sqrt(model_history.history[f'val_{metric}']), 'b', label='Validation Data')
-    ax.set_xlabel(r'Epoch', fontsize=20)
-    ax.set_ylabel(f'{metric}', fontsize=20)
-    ax.legend()
-    ax.tick_params(labelsize=20)
-    plt.savefig(f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/{metric}_with_epoch.png")
-    plt.show()
-
-
 def get_VH_WWW_df(model, name, filerange, df_test, y_pred, y_array):
     df_EFT = pd.read_csv(
         f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/df_preprocessed_{name}.csv")
@@ -1268,3 +1254,119 @@ def get_VH_WWW_df(model, name, filerange, df_test, y_pred, y_array):
     df_EFT_NN = df_EFT_NN[cut]
 
     return df_EFT_NN
+def get_df_nodes(y_array, y_pred):
+    y_pred_VH = [i[0] for i in y_pred]
+    y_array_VH = [i[0] for i in y_array]
+    y_pred_WWW = [i[1] for i in y_pred]
+    y_array_WWW = [i[1] for i in y_array]
+    y_pred_bkg = [i[2] for i in y_pred]
+    y_array_bkg = [i[2] for i in y_array]
+    results = {"truth 0": y_pred_VH,
+               "prediction 0": y_array_VH,
+               "truth 1": y_pred_WWW,
+               "prediction 1": y_array_WWW,
+               "truth 2": y_pred_bkg,
+               "prediction 2": y_array_bkg,
+               }
+    df_test = pd.DataFrame(results)
+
+    weight_sig, weight_bkg, lumi = get_weights()
+    conditions = [
+        (df_test["truth 0"] == 1.0),
+        (df_test["truth 1"] == 1.0),
+        (df_test["truth 2"] == 1.0)]
+    choices = [weight_sig, weight_sig, weight_bkg]
+    df_test['weights'] = np.select(conditions, choices, default=0)
+
+    return df_test
+def plot_nodes_re(y_array, y_pred):
+    df_test = get_df_nodes(y_array,y_pred)
+
+    cutVH = df_test[df_test["truth 0"] == 1]
+    cutWWW = df_test[df_test["truth 1"] == 1]
+    cutbkg = df_test[df_test["truth 2"] == 1]
+
+    for i in range(0, 3):
+        if i == 0:
+            var = 'VH'
+        elif i == 1:
+            var = 'WWW'
+        else:
+            var = 'bkg'
+        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+        bins = np.linspace(0, 1, 40)
+
+        weight_sig, weight_bkg, lumi = get_weights()
+        ax.hist([cutVH[f"prediction {i}"],
+                 cutWWW[f"prediction {i}"],
+                 cutbkg[f"prediction {i}"]
+                 ],
+        weights = [cutVH[f"weights"],
+                   cutWWW[f"weights"],
+                   cutbkg[f"weights"]],
+        color=['purple', 'lime', 'cyan'],
+        bins=bins,
+        histtype='step',
+        label=["actual VH", "actual WWW", "actual bkg"])
+        ax.set_yscale('log')
+        ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % lumi, transform=ax.transAxes)
+        ax.set_xlabel(f"Actually Truth {var} Node")
+        ax.set_ylabel("Entries")
+        ax.legend()
+        plt.show()
+
+
+def s_over_b(y_array, y_pred, type, graph=False):
+    df_test = get_df_nodes(y_array, y_pred)
+
+    # whole df, sorted descending order of predicted type
+    df1 = df_test.sort_values(f'prediction {type}', ascending=False, ignore_index=True)
+
+    cut = (df1[f"truth {type}"] == 1.0)
+    df2 = df1[cut] # df of all truth events of a type ie all pred VH that ARE VH
+
+    #get number of events detected to 4
+    sum_sig = 0
+    index = 0
+    for i in range(0, len(df2)):
+        if sum_sig < 4:
+            sum_sig += (df2.iloc[i][f"prediction {type}"]) * (df2.iloc[i]["weights"])
+            index += 1
+
+        else:
+            continue
+
+    value = df2.iloc[index][f"prediction {type}"]
+
+    sum_bkg = 0
+    cut = (df1[f"truth {type}"] != 1.0) & (df1[f"prediction {type}"] > value)
+    df3 = df1[cut] #df of all events identified as type but actually aren't
+
+
+    bkg = (df3[f"prediction {type}"]) * (df3["weights"])
+    sum_bkg = bkg.sum(axis='index')
+
+    s_over_b = sum_sig / sum_bkg
+
+    if graph is not False:
+        if type == '0':
+            label ='VH'
+        elif type == '1':
+            label = 'WWW'
+
+        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+        bins = np.linspace(0.9, 1, 40)
+        ax.hist([df2.iloc[0:index][f"prediction {type}"], df3.iloc[0:index][f"prediction {type}"]],
+                color=['red', 'blue'],
+                bins=bins,
+                histtype='step',
+                weights = [df2.iloc[0:index]["weights"], df3.iloc[0:index]["weights"]],
+                label=[f"predicted {label}", f"predicted not {label}"])
+        ax.set_yscale('log')
+        ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % 400, transform=ax.transAxes)
+        ax.set_xlabel(f"{label} node")
+        ax.set_ylabel("Entries")
+        ax.legend()
+        plt.show()
+
+    return s_over_b
