@@ -45,7 +45,7 @@ plothist(df, ["F_alpha"], 1., 20)
 """""
 
 # load trained ML model optimised for both VH and WWW separation
-filename = "/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_torch_new.sav"
+filename = "/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_torch_new3.sav"
 #filename = '/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/initial_model.sav'
 model = joblib.load(filename)
 
@@ -78,10 +78,17 @@ y_pred = model(X)
 y_array = y.detach().numpy()
 y_pred = y_pred.detach().numpy()
 
-VH_sig_over_bkg = sigoverbkg('VH', y_pred, y_array)
-WWW_sig_over_bkg = sigoverbkg('WWW', y_pred, y_array)
+#plot_nodes(y_pred, y_array, 'VH')
+#plot_nodes(y_pred, y_array, 'WWW')
+#plot_nodes(y_pred, y_array, 'bkg')
 
-plot_nodes(y_array, y_pred)
+df_test = get_df_nodes(y_pred, y_array)
+
+plot_nodes_re(y_pred, y_array)
+
+
+print(s_over_b(y_pred, y_array, '0', graph=True))
+print(s_over_b(y_pred, y_array, '1', graph=True))
 
 y_pred_class = np.argmax(y_pred, axis=1)  # classes predicted for training data
 y_truth_class = np.argmax(y_array, axis=1)  # classes predicted for test data using model
@@ -98,7 +105,7 @@ featurenames = ['PT_l0', 'PT_l1', 'PT_l2', 'met',
                    'mT_l0l1', 'mT_l0l2', 'mT_l1l2', 'sumPT',
                    'm_l0l1', 'm_l0l2', 'm_l1l2',
                    'm_lll', 'F_alpha']
-
+"""""
 x = np.array(sc.inverse_transform(x))
 df_test = pd.DataFrame(x, columns=featurenames)
 df_test.insert(loc=0, column='Type', value=y_pred_class)
@@ -121,4 +128,4 @@ plothist(df, ["n_btag"], 10., 9, df2=df_test, weight2=weight_sig, name2='Post-ML
 plothist(df, ["met"], 500., 100, df2=df_test, weight2=weight_sig, name2='Post-ML')
 plothist(df, ["max_PT_jet"], 500., 100, df2=df_test, weight2=weight_sig, name2='Post-ML')
 plothist(df, ["F_alpha"], 1., 20, df2=df_test, weight2=weight_sig, name2='Post-ML')
-
+"""""

@@ -30,13 +30,26 @@ class_weight = class_weight.compute_class_weight(class_weight='balanced', classe
 X = torch.tensor(x.values, dtype=torch.float32)
 y = torch.tensor(y_cat, dtype=torch.float32).reshape(-1, 3)
 y_int = torch.tensor(y_cat, dtype=torch.int32).reshape(-1, 3)
-def get_model(layer_1=128, layer_2=80, layer_3=64, layer_4=32,
-              layer_5=16, layer_6=8, layer_7=8, layer_8=8,
-              layer_9=16, layer_10=8,
-              dropout_1=0.37, dropout_2=0.3, dropout_3=0.26,
-              dropout_4=0.2, dropout_5=0.17, dropout_6=0.15,
-              dropout_7=0.12, dropout_8=0.1,
-              lr=0.01):
+def get_model(run):
+    layer_1 = run.config["hidden_layers"][0]
+    layer_2 = run.config["hidden_layers"][1]
+    layer_3 = run.config["hidden_layers"][2]
+    layer_4 = run.config["hidden_layers"][3]
+    layer_5 = run.config["hidden_layers"][4]
+    layer_6 = run.config["hidden_layers"][5]
+    layer_7 = run.config["hidden_layers"][6]
+    layer_8 = run.config["hidden_layers"][7]
+    #layer_9 = run.config["hidden_layers"][8]
+    #layer_10 = run.config["hidden_layers"][9]
+    dropout_1 = run.config["dropout"][0]
+    dropout_2 = run.config["dropout"][1]
+    dropout_3 = run.config["dropout"][2]
+    dropout_4 = run.config["dropout"][3]
+    dropout_5 = run.config["dropout"][4]
+    #dropout_6 = run.config["dropout"][5]
+    #dropout_7 = run.config["dropout"][6]
+    #dropout_8 = run.config["dropout"][7]
+    lr = run.config["lr"]
 
     model = nn.Sequential(
         nn.Linear(27, layer_1),
@@ -55,11 +68,11 @@ def get_model(layer_1=128, layer_2=80, layer_3=64, layer_4=32,
         nn.SiLU(),
         nn.Linear(layer_5, layer_6),
         #nn.Dropout(dropout_5),
-        #nn.SiLU(),
-        #nn.Linear(layer_6, layer_7),
+        nn.SiLU(),
+        nn.Linear(layer_6, layer_7),
         #nn.Dropout(dropout_6),
-        #nn.SiLU(),
-        #nn.Linear(layer_7, layer_8),
+        nn.SiLU(),
+        nn.Linear(layer_7, layer_8),
         #nn.Dropout(dropout_7),
         #nn.SiLU(),
         #nn.Linear(layer_8, layer_9),
@@ -67,62 +80,61 @@ def get_model(layer_1=128, layer_2=80, layer_3=64, layer_4=32,
         #nn.SiLU(),
         #nn.Linear(layer_9, layer_10),
         nn.SiLU(),
-        nn.Linear(layer_6, 3),
+        nn.Linear(layer_8, 3),
         nn.Softmax(dim=1)
     )
 
     optimizer = optim.Adam(model.parameters(), lr=lr)
     return model, optimizer
 
-
-params = {"layer_1": [np.arange(16, 128, 8, dtype=int)],
-          "layer_2": [np.arange(16, 128, 8, dtype=int)],
-          "layer_3": [np.arange(16, 128, 8, dtype=int)],
-          "layer_4": [np.arange(16, 128, 8, dtype=int)],
-          "dropout_1": [np.arange(0.2, 0.4, 0.05, dtype=float)],
-          "dropout_2": [np.arange(0.2, 0.4, 0.05, dtype=float)],
-          "dropout_3": [np.arange(0.2, 0.4, 0.05, dtype=float)],
-          "lr": [1., 0.1, 0.01, 0.001]}
-
 # categorical cross entropy, weighted
 loss_fn = nn.CrossEntropyLoss(weight=torch.tensor([class_weight[0],
                                                    class_weight[1],
                                                    class_weight[2]]))
-n_epochs = 300
+n_epochs = 100
 
+config = {"hidden_layers": [512, 256, 128, 80, 64, 32, 16, 8],
+          "dropout": [0, 0, 0, 0, 0],
+          "activation": 'silu',
+          "lr": 0.01}
+
+run = wandb.init(project='mlp_torch', config=config)
 
 #for i in range(0, len(params)):
-model, optimizer = get_model()
-wandb.init(project='mlp_torch')
+model, optimizer = get_model(run)
+
 for epoch in range(n_epochs):
-    Xbatch = X
-    y_pred = model(Xbatch)
-    ybatch = y
-    loss = loss_fn(y_pred, ybatch)
+    y_pred = model(X)
+    loss = loss_fn(y_pred, y)
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     aucfunc = MultilabelAUROC(num_labels=3, thresholds=None)
     auc = aucfunc(y_pred, y_int)
-    acc = (y_pred.round() == ybatch).float().mean()
-    y_array = y.detach().numpy()
-    y_pred = y_pred.detach().numpy()
-    VH_sig_over_bkg = sigoverbkg('VH', y_pred, y_array)
-    WWW_sig_over_bkg = sigoverbkg('WWW', y_pred, y_array)
+    acc = (y_pred.round() == y).float().mean()
+    #y_array = y.detach().numpy()
+    #y_pred = y_pred.detach().numpy()
+    #VH_sig_over_bkg = s_over_b(y_pred, y_array, '0')
+    #WWW_sig_over_bkg = s_over_b(y_pred, y_array, '1')
 
     metrics = {
         "train/train_loss": loss,
         "train/epoch": epoch + 1,
         "auc": auc,
         "accuracy": acc,
-        "VH_sig_over_bkg": VH_sig_over_bkg,
-        "WWW_sig_over_bkg": WWW_sig_over_bkg,
-    }
+        #"VH_sig_over_bkg": VH_sig_over_bkg,
+        #"WWW_sig_over_bkg": WWW_sig_over_bkg,
+        }
+
     wandb.log(metrics)
 
-plot_nodes(y_array, y_pred)
-VH_sig_over_bkg = sigoverbkg('VH', y_pred, y_array, graph=True)
-WWW_sig_over_bkg = sigoverbkg('WWW', y_pred, y_array, graph=True)
-
-filename = "/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_torch_VH.sav"
+filename = "/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_torch_new4.sav"
 joblib.dump(model, filename)
+
+y_pred = model(X)
+y_array = y.detach().numpy()
+y_pred = y_pred.detach().numpy()
+plot_nodes_re(y_pred, y_array)
+VH_sig_over_bkg = s_over_b(y_array, y_pred, '0', graph=True)
+WWW_sig_over_bkg = s_over_b(y_array, y_pred, '1', graph=True)
+

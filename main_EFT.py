@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from analysis import *
-
+import numba as nb
 # Plotting
 import matplotlib.pyplot as plt
 
@@ -43,7 +43,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torchmetrics.classification import BinaryAUROC
 
-# TODO get weights to work for the different samples
 weight_sig, weight_bkg, lumi = get_weights()  # weights & luminosity
 
 # df of all SM data
@@ -108,11 +107,11 @@ for i in range(0, len(data_list)):
     #plots histograms for EFT inputs before and after classification by model
     #returns df of EFT and SM data with predicted classes (truth class not a variable anymore)
 
-    df_EFT_NN =  get_VH_WWW_df(model, data_list[i], number_events[i],
-                               df_test, y_pred, y_array)
+    df_EFT_NN = get_VH_WWW_df(model, data_list[i], number_events[i],
+                              df_test, y_pred, y_array)
     print(df_EFT_NN.shape)
 
-    weightEFT = get_weights_EFT('cHq3_-1', '0[0-4]')
+    weightEFT = get_weights_EFT(data_list[i], number_events[i])
 
     df_EFT_NN = df_EFT_NN.drop("Type", axis=1)
     df_EFT_NN = df_EFT_NN.dropna(axis=0)
@@ -125,79 +124,21 @@ for i in range(0, len(data_list)):
     X = torch.tensor(x.values, dtype=torch.float32)
     y = torch.tensor(Y, dtype=torch.float32).reshape(-1, 1)
 
-    #for j in [8, 16, 32, 64, 80, 128, 256, 512]:
-    for j in [128]:
-        model_EFT = nn.Sequential(
-            nn.Linear(27, j),
-            nn.ReLU(),
-            nn.Linear(j, 64),
-            nn.Dropout(0.2),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.Dropout(0.2),
-            nn.ReLU(),
-            nn.Linear(32, 16),
-            nn.Dropout(0.2),
-            nn.ReLU(),
-            nn.Linear(16, 8),
-            nn.Dropout(0.2),
-            nn.ReLU(),
-            nn.Linear(8, 1),
-            nn.Sigmoid()
-        )
+    class_weight = class_weight.compute_class_weight(class_weight='balanced', classes=np.unique(Y), y=Y)
 
-        n_epochs = 100
+    filenameEFT = f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_EFT.sav"
+    model_EFT = joblib.load(filenameEFT)
 
-        class_weight = class_weight.compute_class_weight(class_weight='balanced', classes=np.unique(Y), y=Y)
+    y_pred = model_EFT(X)
+    y_array = y.detach().numpy()
+    y_truth_class = np.argmax(y_array, axis=1)  # classes predicted for test data using mode
+    y_array = nb.typed.List([i[0] for i in y_array])
+    y_pred = y_pred.detach().numpy()
+    y_pred_class = np.argmax(y_pred, axis=1)  # classes predicted for training data
+    y_pred = nb.typed.List([i[0] for i in y_pred])
 
-        loss_fn = nn.BCELoss()  # binary cross entropy
-        optimizer = optim.Adam(model_EFT.parameters(), lr=0.001)
-        #filename = f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_EFT_{data_list[i]}.sav"
-        #model = joblib.load(filename)
-
-        wandb.init(project='mlp_eft')
-        for epoch in range(n_epochs):
-            y_pred = model_EFT(X)
-            loss = loss_fn(y_pred, y)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            B_AUROC = BinaryAUROC(thresholds=None)
-            auc = B_AUROC(y_pred, y)
-            acc = (y_pred.round() == y).float().mean()
-            y_array = y.detach().numpy()
-            y_array = [i[0] for i in y_array]
-            y_array = numba.typed.List(y_array)
-            y_pred = y_pred.detach().numpy()
-            y_pred = [i[0] for i in y_pred]
-            y_pred = numba.typed.List(y_pred)
-            EFT_truth = EFT_s_over_b(y_array, y_pred, weightEFT)
-
-            metrics = {
-                "train/train_loss": loss,
-                "train/epoch": epoch + 1,
-                "auc": auc,
-                "accuracy": acc,
-                "EFT_truth": EFT_truth,
-            }
-            wandb.log(metrics)
-
-        y_pred = model_EFT(X)
-        y_array = y.detach().numpy()
-        y_truth_class = np.argmax(y_array, axis=1)  # classes predicted for test data using mode
-        y_array = [i[0] for i in y_array]
-        y_array = numba.typed.List(y_array)
-        y_pred = y_pred.detach().numpy()
-        y_pred_class = np.argmax(y_pred, axis=1)  # classes predicted for training data
-        y_pred = [i[0] for i in y_pred]
-        y_pred = numba.typed.List(y_pred)
-
-        plot_nodes_2(y_array, y_pred, weightEFT)
-
-        print(classification_report(y_truth_class, y_pred_class))
-
-        filename = f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/MLP_EFT_{data_list[i]}_{j}_multi.sav"
-        joblib.dump(model_EFT, filename)
+    plot_nodes_2(y_array, y_pred, get_weights_EFT(data_list[i], number_events[i]))
+    print(classification_report(y_truth_class, y_pred_class))
 
 
 
