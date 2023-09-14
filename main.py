@@ -219,7 +219,6 @@ array_list = plot_nodes_re(y_pred, y_array, ret=True)
 array_VH = array_list[0]
 array_WWW = array_list[1]
 array_bkg = array_list[2]
-print(array_VH)
 
 y_pred_class = np.argmax(y_pred, axis=1)  # classes predicted for training data
 y_truth_class = np.argmax(y_array, axis=1)  # classes predicted for test data using model
@@ -251,15 +250,14 @@ def make_delta_node(array):
     return delta_node
 
 delta_node = make_delta_node(array_VH)
+print(delta_node)
+print(array_VH[2])
 
 import pyhf
 from pyhf.contrib.viz import brazil
 
 bkg_uncertainty = list(np.sqrt(array_VH[2] * weight_bkg))
 print(bkg_uncertainty)
-print(len(bkg_uncertainty + bkg_uncertainty))
-print(len(delta_node + delta_node))
-print(len(list(array_VH[2]) + list(array_VH[2])))
 
 
 pyhf.set_backend("numpy")
@@ -267,12 +265,24 @@ model = pyhf.simplemodels.uncorrelated_background(signal=(delta_node + delta_nod
                                                   bkg=(list(array_VH[2]) + list(array_VH[2])), 
                                                   bkg_uncertainty=(bkg_uncertainty + bkg_uncertainty))
 
+poi_vals = np.linspace(0, 0.5, 41)
 data = (list(array_VH[2]) + list(array_VH[2])) + model.config.auxdata
+
+best_fit_pars = pyhf.infer.mle.fit(data, model)
+print(f"initialization parameters: {model.config.suggested_init()}")
+print(
+    f"best fit parameters:\
+    \n * signal strength: {best_fit_pars[0]}\
+    \n * nuisance parameters: {best_fit_pars[1:]}"
+)
+
 results = [
-    pyhf.infer.hypotest([0], data, model, test_stat='qtilde', return_expected_set=True)
+    pyhf.infer.hypotest(test_poi, data, model, test_stat='qtilde', return_expected_set=True) for test_poi in poi_vals
 ]
 
 fig, ax = plt.subplots()
 fig.set_size_inches(7, 5)
-brazil.plot_results(0, results, ax=ax)
-fig.show()
+brazil.plot_results(poi_vals, results, ax=ax)
+plt.show()
+
+print('WHERE IS MY GRAPH')
