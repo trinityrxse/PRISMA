@@ -10,8 +10,6 @@ import numba, vector
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
-import seaborn as sns
-import pandas as pd
 from keras.utils import to_categorical
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler
@@ -28,12 +26,12 @@ from sklearn.metrics import classification_report
 
 def get_weights():
     lhe_signal = glob.glob(
-        "/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/Signal/SM/WWW01j_000[0-4].lhe.gz")
+        "/localscratch/Samples/Signal/SM/WWW01j_000[0-4].lhe.gz")
     root_signal = glob.glob(
-        "/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/Signal/SM/WWW01j_000[0-4].root")
+        "/localscratch/Samples/Signal/SM/WWW01j_000[0-4].root")
 
-    lhe_bkg = glob.glob("/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/3l01j/3l01j_00[0-1]?.lhe.gz")
-    root_bkg = glob.glob("/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/3l01j/3l01j_00[0-1]?.root")
+    lhe_bkg = glob.glob("/localscratch/Samples/3l01j/3l01j_00[0-1]?.lhe.gz")
+    root_bkg = glob.glob("/localscratch/Samples/3l01j/3l01j_00[0-1]?.root")
 
     xSection_sig = get_xSection(lhe_signal)
     xSection_bkg = get_xSection(lhe_bkg)
@@ -61,9 +59,9 @@ def get_weights():
 
 def get_weights_EFT(EFTname, number_events):
     lhe_signal = glob.glob(
-        f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/Signal/sig_{EFTname}/WWW01j_00{number_events}.lhe.gz")
+        f"/localscratch/Samples/Signal/sig_{EFTname}/WWW01j_00{number_events}.lhe.gz")
     root_signal = glob.glob(
-        f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/Signal/sig_{EFTname}/WWW01j_00{number_events}.root")
+        f"/localscratch/Samples/Signal/sig_{EFTname}/WWW01j_00{number_events}.root")
 
     xSection_sig = get_xSection(lhe_signal)
 
@@ -152,8 +150,8 @@ def preselection(batch):
             if charges_m[0] == charges_m[1]:
                 n_sameQ += 1
 
-        #if nElectrons + nMuons == 3 and nJets < 5 and n_sameQ > 0:
-        if nElectrons + nMuons == 3 and nJets < 5:
+        if nElectrons + nMuons == 3 and nJets < 5 and n_sameQ > 0:
+        #if nElectrons + nMuons == 3 and nJets < 5:
             charges = charges_m + charges_e
             if charges[0] == charges[1] == charges[2]:
                 pass_selection[i] = False
@@ -407,8 +405,7 @@ def get_leptons(batch):
            transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
            invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
            dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-           d0_l0, d0_l1, d0_l2, n_jet, \
-           n_btag, zsin_l0, zsin_l1, zsin_l2 , f_alpha
+           d0_l0, d0_l1, d0_l2, n_jet, f_alpha
     # no S to compute S/met
     # cannot compute max(1 - E/p)
 
@@ -576,6 +573,7 @@ def plothist(df, featurelist, binend, numberbins, df2=None, weight2=None, name2=
         ax.set_xlabel(featurename)
         ax.set_ylabel("Entries")
         ax.legend()
+        plt.tight_layout()
         plt.show()
 
     elif classes == 2:
@@ -629,7 +627,7 @@ def plothist(df, featurelist, binend, numberbins, df2=None, weight2=None, name2=
         ax[1].set_xlabel(featurename1)
         ax[1].set_ylabel("Entries")
         ax[1].legend()
-
+        plt.tight_layout()
         plt.show()
 
     elif classes == 3:
@@ -704,7 +702,7 @@ def plothist(df, featurelist, binend, numberbins, df2=None, weight2=None, name2=
         ax[2].set_xlabel(featurename2)
         ax[2].set_ylabel("Entries")
         ax[2].legend()
-
+        plt.tight_layout()
         plt.show()
 
 def df_selection(df):
@@ -715,12 +713,6 @@ def df_selection(df):
     df = df[selection_mindelR]
 
     return df
-
-def n_btag_selec(df):
-    selection_nbtag = (df["n_btag"] == 0)
-    df = df[selection_nbtag]
-    return df
-
 
 @numba.jit(nopython=True)
 def node_outputs(y_test, y_pred):
@@ -793,6 +785,7 @@ def plot_nodes(y_pred, y_array, label):
     ax.set_xlabel(label)
     ax.set_ylabel("Entries")
     ax.legend()
+    plt.tight_layout()
     plt.show()
 
 @numba.jit(nopython=True)
@@ -1049,19 +1042,16 @@ def pre_processing(root_signal, root_bkg, name):
             transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
             invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
             dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-            d0_l0, d0_l1, d0_l2, n_jet, \
-            n_btag, zsin_l0, zsin_l1, zsin_l2, f_alpha = get_leptons(batch)
+            d0_l0, d0_l1, d0_l2, n_jet, f_alpha = get_leptons(batch)
         # cannot compute max(1 - E/p)
 
         dataset = {'PT_l0': PT_l0, 'PT_l1': PT_l1, 'PT_l2': PT_l2, 'met': met,
-                   'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
-                   'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
-                   'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2,
-                   'z0sintheta_l0': zsin_l0, 'z0sintheta_l1': zsin_l1, 'z0sintheta_l2': zsin_l2,
-                   'n_btag': n_btag, 'max_PT_jet': max_PT_jet,
-                   'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
-                   'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2': invarM_l1l2,
-                   'm_lll': invarM, 'F_alpha': f_alpha}
+                'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
+                'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
+                'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2, 'max_PT_jet': max_PT_jet,
+                'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
+                'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2':  invarM_l1l2,
+                'm_lll': invarM, 'F_alpha': f_alpha}
         # make into dict
 
         if df_VH is not None:
@@ -1100,19 +1090,17 @@ def pre_processing(root_signal, root_bkg, name):
             transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
             invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
             dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-            d0_l0, d0_l1, d0_l2, n_jet, \
-            n_btag, zsin_l0, zsin_l1, zsin_l2, f_alpha = get_leptons(batch)
+            d0_l0, d0_l1, d0_l2, n_jet, f_alpha = get_leptons(batch)
         # cannot compute max(1 - E/p)
 
         dataset = {'PT_l0': PT_l0, 'PT_l1': PT_l1, 'PT_l2': PT_l2, 'met': met,
-                   'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
-                   'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
-                   'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2,
-                   'z0sintheta_l0': zsin_l0, 'z0sintheta_l1': zsin_l1, 'z0sintheta_l2': zsin_l2,
-                   'n_btag': n_btag, 'max_PT_jet': max_PT_jet,
-                   'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
-                   'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2': invarM_l1l2,
-                   'm_lll': invarM, 'F_alpha': f_alpha}
+                'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
+                'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
+                'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2, 'max_PT_jet': max_PT_jet,
+                'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
+                'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2':  invarM_l1l2,
+                'm_lll': invarM, 'F_alpha': f_alpha}
+        # make into dict    
 
         if df_WWW is not None:
             newdata_WWW = pd.DataFrame(dataset)
@@ -1147,19 +1135,16 @@ def pre_processing(root_signal, root_bkg, name):
             transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
             invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
             dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-            d0_l0, d0_l1, d0_l2, n_jet, \
-            n_btag, zsin_l0, zsin_l1, zsin_l2, f_alpha = get_leptons(batch)
+            d0_l0, d0_l1, d0_l2, n_jet, f_alpha = get_leptons(batch)
         # cannot compute max(1 - E/p)
 
         dataset = {'PT_l0': PT_l0, 'PT_l1': PT_l1, 'PT_l2': PT_l2, 'met': met,
-                   'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
-                   'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
-                   'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2,
-                   'z0sintheta_l0': zsin_l0, 'z0sintheta_l1': zsin_l1, 'z0sintheta_l2': zsin_l2,
-                   'n_btag': n_btag, 'max_PT_jet': max_PT_jet,
-                   'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
-                   'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2': invarM_l1l2,
-                   'm_lll': invarM, 'F_alpha': f_alpha}
+                'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
+                'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
+                'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2, 'max_PT_jet': max_PT_jet,
+                'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
+                'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2':  invarM_l1l2,
+                'm_lll': invarM, 'F_alpha': f_alpha}
         # make into dict
 
         # any round but first round - concatenate with previous batches
@@ -1254,6 +1239,7 @@ def get_VH_WWW_df(model, name, filerange, df_test, y_pred, y_array):
     df_EFT_NN = df_EFT_NN[cut]
 
     return df_EFT_NN
+
 def get_df_nodes(y_array, y_pred):
     y_pred_VH = [i[0] for i in y_pred]
     y_array_VH = [i[0] for i in y_array]
@@ -1279,12 +1265,15 @@ def get_df_nodes(y_array, y_pred):
     df_test['weights'] = np.select(conditions, choices, default=0)
 
     return df_test
-def plot_nodes_re(y_array, y_pred):
+
+def plot_nodes_re(y_array, y_pred, ret=False):
     df_test = get_df_nodes(y_array,y_pred)
 
     cutVH = df_test[df_test["truth 0"] == 1]
     cutWWW = df_test[df_test["truth 1"] == 1]
     cutbkg = df_test[df_test["truth 2"] == 1]
+
+    array_list = []
 
     for i in range(0, 3):
         if i == 0:
@@ -1294,27 +1283,31 @@ def plot_nodes_re(y_array, y_pred):
         else:
             var = 'bkg'
         fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-        bins = np.linspace(0, 1, 40)
+        bins = np.linspace(0.95, 1, 100)
 
         weight_sig, weight_bkg, lumi = get_weights()
-        ax.hist([cutVH[f"prediction {i}"],
+        array_list_X, bins_X, patches = ax.hist([cutVH[f"prediction {i}"],
                  cutWWW[f"prediction {i}"],
                  cutbkg[f"prediction {i}"]
                  ],
-        weights = [cutVH[f"weights"],
-                   cutWWW[f"weights"],
-                   cutbkg[f"weights"]],
-        color=['purple', 'lime', 'cyan'],
-        bins=bins,
-        histtype='step',
-        label=["actual VH", "actual WWW", "actual bkg"])
-        ax.set_yscale('log')
+            weights = [cutVH[f"weights"],
+                    cutWWW[f"weights"],
+                    cutbkg[f"weights"]],
+            color=['purple', 'lime', 'cyan'],
+            bins=bins,
+            histtype='step',
+            label=["actual VH", "actual WWW", "actual bkg"])
+        #ax.set_yscale('log')
         ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % lumi, transform=ax.transAxes)
         ax.set_xlabel(f"Actually Truth {var} Node")
         ax.set_ylabel("Entries")
-        ax.legend()
+        ax.legend(loc='upper left')
         plt.show()
 
+        array_list.append(array_list_X)
+
+    if ret == True:
+        return array_list
 
 def s_over_b(y_array, y_pred, type, graph=False):
     df_test = get_df_nodes(y_array, y_pred)

@@ -53,7 +53,7 @@ def get_model(run):
     lr = run.config["lr"]
 
     model = nn.Sequential(
-        nn.Linear(27, layer_1),
+        nn.Linear(23, layer_1),
         nn.SiLU(),
         nn.Linear(layer_1, layer_2),
         nn.Dropout(dropout_1),
@@ -179,8 +179,8 @@ config20 = {"hidden_layers": [102, 90, 75, 69, 54, 48, 36, 27, 18, 9],
 
 
 
-configs = [config10, config11, config12,
-           config13, config14, config15, config16, config17, config18, config19, config20]
+configs = [config7]
+
 
 for config in configs:
 
@@ -214,7 +214,7 @@ for config in configs:
 
         wandb.log(metrics)
 
-    filename = "/localscratch/MLP_torch.sav"
+    filename = f"/localscratch/MLP_torch_{config}.sav"
     joblib.dump(model, filename)
 
     y_pred = model(X)

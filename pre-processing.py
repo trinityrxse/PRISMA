@@ -5,14 +5,13 @@ import numba, vector
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
-import seaborn as sns
 from analysis import *
 
 #TODO make this general for all files
 root_signal = glob.glob(
-    "/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/Signal/SM/WWW01j_000[0-4].root")
+    "/localscratch/Samples/Signal/SM/WWW01j_000[0-4].root")
 root_bkg = glob.glob(
-    "/Users/trinitystenhouse/Documents/University_MSci/2022-3/Samples/3l01j/3l01j_00[0-1]?.root")
+    "/localscratch/Samples/3l01j/3l01j_00[0-1]?.root")
 name = ""
 N_root_sig = 511723  # getNeventsRoot(root_signal)
 N_root_bgk = 2964674  # getNeventsRoot(root_bkg)
@@ -44,19 +43,17 @@ for batch in tqdm(iterator, total=N_root_sig // batch_size): #total=N_root_sig /
         transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
         invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
         dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-        d0_l0, d0_l1, d0_l2, n_jet, \
-        n_btag, zsin_l0, zsin_l1, zsin_l2, f_alpha = get_leptons(batch)
+        d0_l0, d0_l1, d0_l2, n_jet, f_alpha = get_leptons(batch)
     # cannot compute max(1 - E/p)
 
     dataset = {'PT_l0': PT_l0, 'PT_l1': PT_l1, 'PT_l2': PT_l2, 'met': met,
                'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
                'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
-               'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2,
-               'z0sintheta_l0': zsin_l0, 'z0sintheta_l1': zsin_l1, 'z0sintheta_l2': zsin_l2,
-               'n_btag': n_btag, 'max_PT_jet': max_PT_jet,
+               'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2, 'max_PT_jet': max_PT_jet,
                'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
                'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2':  invarM_l1l2,
-               'm_lll': invarM, 'F_alpha': f_alpha} # make into dict
+               'm_lll': invarM, 'F_alpha': f_alpha}
+    # make into dict
 
     if df_VH is not None:
         newdata_VH = pd.DataFrame(dataset)
@@ -67,7 +64,6 @@ for batch in tqdm(iterator, total=N_root_sig // batch_size): #total=N_root_sig /
 
 print("Preselection efficiency for VH events: %2.2f %%" % (100. * nselected_VH / ntotal_VH))
 df_VH.insert(loc=0, column='Type', value=0)
-df_VH = n_btag_selec(df_VH)
 
 
 myfilter = "/(MissingET.(MET|Phi)|Particle.(PID|Status)|Electron.(PT|Eta|Phi|Charge|D0|ErrorD0|DZ)|Muon.(PT|Eta|Phi|Charge|D0|ErrorD0|DZ)|Jet.(PT|Eta|Phi|BTag))/"
@@ -94,19 +90,17 @@ for batch in tqdm(iterator, total=N_root_sig // batch_size):
         transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
         invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
         dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-        d0_l0, d0_l1, d0_l2, n_jet, \
-        n_btag, zsin_l0, zsin_l1, zsin_l2, f_alpha = get_leptons(batch)
+        d0_l0, d0_l1, d0_l2, n_jet, f_alpha = get_leptons(batch)
     # cannot compute max(1 - E/p)
 
     dataset = {'PT_l0': PT_l0, 'PT_l1': PT_l1, 'PT_l2': PT_l2, 'met': met,
                'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
                'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
-               'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2,
-               'z0sintheta_l0': zsin_l0, 'z0sintheta_l1': zsin_l1, 'z0sintheta_l2': zsin_l2,
-               'n_btag': n_btag, 'max_PT_jet': max_PT_jet,
+               'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2, 'max_PT_jet': max_PT_jet,
                'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
                'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2':  invarM_l1l2,
                'm_lll': invarM, 'F_alpha': f_alpha}
+    # make into dict
 
     if df_WWW is not None:
         newdata_WWW = pd.DataFrame(dataset)
@@ -118,7 +112,6 @@ for batch in tqdm(iterator, total=N_root_sig // batch_size):
 print("Preselection efficiency for WWW events: %2.2f %%" % (100. * nselected_WWW / ntotal_WWW))
 
 df_WWW.insert(loc=0, column='Type', value=1)
-df_WWW = n_btag_selec(df_WWW)
 
 # loop over background
 ntotal = 0
@@ -137,16 +130,13 @@ for batch in tqdm(iterator, total=N_root_bgk / batch_size):
         transM_l0l1, transM_l0l2, transM_l1l2, totalP, \
         invarM_l0l1, invarM_l0l2, invarM_l1l2, invarM, \
         dPhi_metl0, dPhi_metl1, dPhi_metl2, max_PT_jet, \
-        d0_l0, d0_l1, d0_l2, n_jet, \
-        n_btag, zsin_l0, zsin_l1, zsin_l2, f_alpha = get_leptons(batch)
+        d0_l0, d0_l1, d0_l2, n_jet, f_alpha = get_leptons(batch)
     # cannot compute max(1 - E/p)
 
     dataset = {'PT_l0': PT_l0, 'PT_l1': PT_l1, 'PT_l2': PT_l2, 'met': met,
                'delR_l0l1': dR_l0l1, 'delR_l0l2': dR_l0l2, 'delR_l1l2': dR_l1l2,
                'delEta_l0l1': deltaeta_l0l1, 'delEta_l0l2': deltaeta_l0l2, 'delEta_l1l2': deltaeta_l1l2,
-               'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2,
-               'z0sintheta_l0': zsin_l0, 'z0sintheta_l1': zsin_l1, 'z0sintheta_l2': zsin_l2,
-               'n_btag': n_btag, 'max_PT_jet': max_PT_jet,
+               'dPhi_MET_l0': dPhi_metl0, 'dPhi_MET_l1': dPhi_metl1, 'dPhi_MET_l2': dPhi_metl2, 'max_PT_jet': max_PT_jet,
                'mT_l0l1': transM_l0l1, 'mT_l0l2': transM_l0l2, 'mT_l1l2': transM_l1l2, 'sumPT': totalP,
                'm_l0l1': invarM_l0l1, 'm_l0l2': invarM_l0l2, 'm_l1l2':  invarM_l1l2,
                'm_lll': invarM, 'F_alpha': f_alpha}
@@ -169,7 +159,7 @@ df_bkg.head()
 df_p = pd.concat([df_WWW, df_VH, df_bkg], axis=0, ignore_index=True)
 df_p = df_selection(df_p)
 #TODO save this for each sample
-df_p.to_csv(f"/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/df_preprocessed_.csv", index=False)
+df_p.to_csv(f"/localscratch/df_preprocessed_.csv", index=False)
 
 # print correlation heatmap
 #corr_df = df_p.corr()
