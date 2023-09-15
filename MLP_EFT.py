@@ -53,15 +53,28 @@ def EFT_model(run):
     if run.config["activation"] == 'relu':
         print(run.config["hidden_layers"][-1])
         model = nn.Sequential(
-            nn.Linear(27, run.config["hidden_layers"][0]),
+            nn.Linear(23, run.config["hidden_layers"][0]),
             nn.ReLU(),
             nn.Linear(run.config["hidden_layers"][0], run.config["hidden_layers"][1]),
-            #nn.Dropout(run.config["dropout"]),
+            nn.Dropout(run.config["dropout"][0]),
             nn.ReLU(),
             nn.Linear(run.config["hidden_layers"][1], run.config["hidden_layers"][2]),
-            #nn.Dropout(0.2),
+            nn.Dropout(run.config["dropout"][1]),
             nn.ReLU(),
             nn.Linear(run.config["hidden_layers"][2], run.config["hidden_layers"][3]),
+            nn.Dropout(run.config["dropout"][2]),
+            #nn.ReLU(),
+            #nn.Linear(run.config["hidden_layers"][3], run.config["hidden_layers"][4]),
+            #nn.Dropout(run.config["dropout"][3]),
+            #nn.ReLU(),
+            #nn.Linear(run.config["hidden_layers"][4], run.config["hidden_layers"][5]),
+            #nn.Dropout(run.config["dropout"][4]),
+            #nn.ReLU(),
+            #nn.Linear(run.config["hidden_layers"][5], run.config["hidden_layers"][6]),
+            #nn.Dropout(run.config["dropout"][5]),
+            #nn.ReLU(),
+            #nn.Linear(run.config["hidden_layers"][6], run.config["hidden_layers"][7]),
+            #nn.Dropout(run.config["dropout"][6]),
             nn.ReLU(),
             nn.Linear(run.config["hidden_layers"][-1], 1),
             nn.Sigmoid()
@@ -69,14 +82,14 @@ def EFT_model(run):
     elif run.config["activation"] == 'silu':
         print(run.config["hidden_layers"][-1])
         model = nn.Sequential(
-            nn.Linear(27, run.config["hidden_layers"][0]),
+            nn.Linear(23, run.config["hidden_layers"][0]),
             nn.SiLU(),
             nn.Linear(run.config["hidden_layers"][0], run.config["hidden_layers"][1]),
-            #nn.Dropout(run.config["dropout"]),
-            #nn.ReLU(),
-            #nn.Linear(32, 16),
-            #nn.Dropout(0.2),
-            #nn.ReLU(),
+            nn.Dropout(run.config["dropout"][0]),
+            nn.SiLU(),
+            nn.Linear(32, 16),
+            nn.Dropout(run.config["dropout"][1]),
+            nn.SiLU(),
             nn.Linear(run.config["hidden_layers"][-1], 1),
             nn.Sigmoid()
         )
@@ -85,14 +98,14 @@ def EFT_model(run):
 
     return model, optimizer
 
-config = {"hidden_layers": [128, 64, 32, 8],
-          "dropout": 0,
+config = {"hidden_layers": [128, 64, 32, 16],
+          "dropout": [0, 0, 0, 0, 0, 0, 0],
           "activation": 'relu',
-          "lr": 0.01}
+          "lr": 0.001}
 
 run = wandb.init(project='mlp_eft', config=config)
 
-n_epochs = 10
+n_epochs = 100
 loss_fn = nn.BCELoss()  # binary cross entropy
 model, optimizer = EFT_model(run)
 for epoch in range(n_epochs):
