@@ -1,9 +1,13 @@
 # PRISMA
 
 Sensitivity analysis for various EFTs tested against SM only hypothesis
+
 Uses Asimov data generated in MADGRAPH
+
 Neural Networks are used to separate processes - our focus is on the VH to WWW channel
+
 We also test validity of Higgs against bkg only hypothesis
+
 Data here is fast simulated (does not include ttbar or system effects) - can modify code to include these if needed
   if using non-fast-sim data, include system effects in training data
 
