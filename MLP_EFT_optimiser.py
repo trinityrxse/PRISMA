@@ -1,3 +1,10 @@
+'''
+
+Training ANN to distinguish between EFT and SM samples
+EFT sample contains SM data too, so expect peak of EFT in SM side
+Use most distinct EFT, for me this was cHq3_-1
+
+'''
 import joblib
 import numpy as np
 import pandas as pd
@@ -12,12 +19,11 @@ from torchmetrics.classification import BinaryAUROC
 
 # Scaling data
 from sklearn.preprocessing import RobustScaler
-from analysis import *
+from analysis_ import *
 
 
 def EFT_model(run):
     if run.config["activation"] == 'relu':
-        print(run.config["hidden_layers"][-1])
         model = nn.Sequential(
             nn.Linear(23, run.config["hidden_layers"][0]),
             nn.ReLU(),
@@ -34,7 +40,6 @@ def EFT_model(run):
             nn.Sigmoid()
         )
     elif run.config["activation"] == 'silu':
-        print(run.config["hidden_layers"][-1])
         model = nn.Sequential(
             nn.Linear(23, run.config["hidden_layers"][0]),
             nn.SiLU(),
@@ -129,6 +134,8 @@ def train_EFT_model(filepath):
 
     configs = [config1, config2, config3, config4, config5, config6,
             config7, config8, config9, config10]
+    
+    accuracies = []
     config_counter = 0
     for config in configs:
         config_counter += 1
@@ -154,6 +161,7 @@ def train_EFT_model(filepath):
             }
             wandb.log(metrics)
 
+        accuracies.append(acc)
         wandb.finish()
 
         y_pred = model(X)
@@ -165,4 +173,12 @@ def train_EFT_model(filepath):
         filename = f"{filepath}/MLP_EFT_{config_counter}.sav"
         joblib.dump(model, filename)
 
-        plot_nodes_2(filepath, y_array, y_pred, get_weights_EFT(filepath, 'cHq3_-1'))
+        plot_nodes_EFT(filepath, y_array, y_pred, get_weights_EFT(filepath, 'cHq3_-1'), f'cHq3_-1_config{config_counter}')
+
+
+    # find best accuracy model
+    max_acc_idx = accuracies.index(max(accuracies))
+    best_config = max_acc_idx + 1 # +1 since computers start at 0 
+    
+    print('End of SM/EFT model training')  
+    return  best_config

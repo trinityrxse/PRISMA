@@ -1,12 +1,21 @@
+'''
+Training ANN to distinguish between VH, WWW and background
+
+Not perfect:
+Try and ensure final bin of the output nodes has only the desired data type
+                (use the s_over_b function from output_nodes for this)
+My data was FAST SIMULATION - hence I could not include the systematic variables
+        - with not fast simulated data, include systematic variables in training
+
+'''
+
 import pandas as pd
 # Make 3 classes
 from keras.utils import to_categorical
-# Train-Test
-from sklearn.model_selection import train_test_split
 # Scaling data
 from sklearn.preprocessing import RobustScaler
 from sklearn.utils import class_weight
-from analysis import *
+from analysis_ import *
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,8 +23,6 @@ import torch.optim as optim
 from torchmetrics.classification import MultilabelAUROC
 import wandb
 import joblib
-
-filepath = '/localscratch'
 
 def get_model(run):
     model = nn.Sequential(
@@ -168,6 +175,7 @@ def train_MLP_multiclassifier(filepath):
                    config14, config15, config16, config17, config18, config19, config20]
 
         config_count=0
+        accuracies = []
         for config in configs:
                 config_count += 1
                 print(config_count)
@@ -196,14 +204,22 @@ def train_MLP_multiclassifier(filepath):
 
                         wandb.log(metrics)
 
+                accuracies.append(acc)
+                wandb.finish()
+
                 filename = f"{filepath}/MLP_torch_{config_count}.sav"
                 joblib.dump(model, filename)
 
                 y_pred = model(X)
                 y_array = y.detach().numpy()
                 y_pred = y_pred.detach().numpy()
-                plot_nodes_multiclassifier(y_pred, y_array)
+                print(f'VH signal over background for config {config_count}: ', s_over_b(filepath, y_array, y_pred, '0', graph=False))
+                print(f'WWW signal over background for config {config_count}: ', s_over_b(filepath, y_array, y_pred, '1', graph=False))
+                plot_nodes_multiclassifier(filepath, y_pred, y_array)
 
-                wandb.finish()
-
-
+        # find best accuracy model
+        max_acc_idx = accuracies.index(max(accuracies))
+        best_config = max_acc_idx + 1 # +1 since computers start at 0 
+               
+        print('End of Multiclassifier training')
+        return best_config

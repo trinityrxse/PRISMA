@@ -53,6 +53,10 @@ def plothist(filepath, df, featurelist, binend, numberbins, df2=None, weight2=No
         ax.set_ylabel("Entries")
         ax.legend()
         plt.tight_layout()
+        if df2 is not None:
+            plt.savefig(f'{filepath}/plot_for_{featurelist}_{name2}.png')
+        else:
+            plt.savefig(f'{filepath}/plot_for_{featurelist}.png')
         plt.show()
 
     elif classes == 2:
@@ -107,6 +111,10 @@ def plothist(filepath, df, featurelist, binend, numberbins, df2=None, weight2=No
         ax[1].set_ylabel("Entries")
         ax[1].legend()
         plt.tight_layout()
+        if df2 is not None:
+            plt.savefig(f'{filepath}/plot_for_{featurelist}_{name2}.png')
+        else:
+            plt.savefig(f'{filepath}/plot_for_{featurelist}.png')
         plt.show()
 
     elif classes == 3:
@@ -182,4 +190,8 @@ def plothist(filepath, df, featurelist, binend, numberbins, df2=None, weight2=No
         ax[2].set_ylabel("Entries")
         ax[2].legend()
         plt.tight_layout()
+        if df2 is not None:
+            plt.savefig(f'{filepath}/plot_for_{featurelist}_{name2}.png')
+        else:
+            plt.savefig(f'{filepath}/plot_for_{featurelist}.png')
         plt.show()

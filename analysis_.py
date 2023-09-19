@@ -1,3 +1,10 @@
+'''
+
+Functions to run to get all the data for analysis
+Uses functions from other modules so check everything is imported
+
+'''
+
 import numpy as np
 import pandas as pd
 import numba as nb
@@ -28,7 +35,7 @@ import pyhf
 from scipy.stats import norm
 
 
-def multiclassifier_results(filepath, full_graphs=False):
+def multiclassifier_results(filepath, best_MLP, full_graphs=False):
     # df of all data provided
     # can read in dfs from EFTs
     df = pd.read_csv(f"{filepath}/df_preprocessed_.csv")
@@ -47,7 +54,7 @@ def multiclassifier_results(filepath, full_graphs=False):
         plothist(filepath, df, ["F_alpha"], 1., 20)
 
     # load trained ML model optimised for both VH and WWW separation
-    filename = f"{filepath}/MLP_torch_12.sav"
+    filename = f"{filepath}/MLP_torch_{best_MLP}.sav"
     #filename = '/Users/trinitystenhouse/Documents/University_MSci/2022-3/PRISMA_code/initial_model.sav'
     model = joblib.load(filename)
 
@@ -63,7 +70,6 @@ def multiclassifier_results(filepath, full_graphs=False):
     y = torch.tensor(y_cat, dtype=torch.float32).reshape(-1, 3)
     y_int = torch.tensor(y_cat, dtype=torch.int32).reshape(-1, 3)
 
-    print(X.shape, 'works')
     # Get df post-training using the classifications predicted by the model 'y_test_class'
     y_pred = model(X)
     y_array = y.detach().numpy()
@@ -76,9 +82,6 @@ def multiclassifier_results(filepath, full_graphs=False):
     plot_nodes_multiclassifier(filepath, y_pred, y_array)
 
     y_pred_class = np.argmax(y_pred, axis=1)  # classes predicted for training data
-    y_truth_class = np.argmax(y_array, axis=1)  # classes predicted for test data using model
-
-    print(classification_report(y_truth_class, y_pred_class))
 
     featurenames = ['PT_l0', 'PT_l1', 'PT_l2', 'met',
                     'delR_l0l1', 'delR_l0l2', 'delR_l1l2',
@@ -142,7 +145,6 @@ def multiclassifier_results(filepath, full_graphs=False):
 
     y_pred_class = np.argmax(y_pred, axis=1)  # classes predicted for training data using model
     y_truth_class = np.argmax(y_array, axis=1)  # classes of test data
-    print(classification_report(y_truth_class, y_pred_class))
 
     #get delta nodes ie WWW - VH node outputs eventwise
     delta_node_VH, delta_node_WWW, delta_node_bkg = get_delta_node(filepath, y_array, y_pred)
@@ -173,9 +175,9 @@ def multiclassifier_results(filepath, full_graphs=False):
     data = data + model.config.auxdata
 
     best_fit_pars = pyhf.infer.mle.fit(data, model)
-    print(f"initialization parameters: {model.config.suggested_init()}")
+    print(f"initialization parameters for multiclassifier: {model.config.suggested_init()}")
     print(
-        f"best fit parameters:\
+        f"best fit parameters for multiclassifier:\
         \n * signal strength: {best_fit_pars[0]}\
         \n * nuisance parameters: {best_fit_pars[1:]}"
     )
@@ -184,11 +186,10 @@ def multiclassifier_results(filepath, full_graphs=False):
         pyhf.infer.hypotest(0.0, data, model, test_stat='q0')
     ]
 
-    print(CLs_obs)
-
     #significance level
     sigma = norm.ppf(CLs_obs[0])
-    print(sigma)
+
+    return sigma
 
 
 def get_p_val(mu, sigma, tmu_tilde):
@@ -206,7 +207,7 @@ def get_p_val(mu, sigma, tmu_tilde):
     p = 1 - F 
     return p 
 
-def test_significance_EFT(filepath, EFT_name):
+def test_significance_EFT(filepath, best_MLP, best_EFT_C, EFT_name):
     df_SM = pd.read_csv(f"{filepath}/df_preprocessed_.csv")
     df_SM.insert(loc=0, column="SM", value=1)
 
@@ -219,7 +220,7 @@ def test_significance_EFT(filepath, EFT_name):
     df = pd.concat([df_SM, df_EFT], axis=0, ignore_index=True)
 
     #run through multiclassifier, cut events predicted as bkg
-    filename = f"{filepath}/MLP_torch_1.sav"
+    filename = f"{filepath}/MLP_torch_{best_MLP}.sav"
     model = joblib.load(filename)
 
     x = df.drop('Type', axis=1)
@@ -259,7 +260,7 @@ def test_significance_EFT(filepath, EFT_name):
     df_test.insert(loc=0, column='SM', value=df['SM'])
 
     # now run through classifier of EFT or SM 
-    filenameEFT = f"/localscratch/MLP_EFT_1.sav"
+    filenameEFT = f"{filepath}/MLP_EFT_{best_EFT_C}.sav"
     model_EFT = joblib.load(filenameEFT)
 
     df2 = df_test.drop("Type", axis=1)
@@ -323,10 +324,11 @@ def test_significance_EFT(filepath, EFT_name):
         f"{filepath}/SM_node_w_bkg_{EFT_name}.png")
     plt.show()
 
-    sumSM = (len(SM_dist['SM'])) * weight_sig
-    sumbkg = (len(df_bkg['SM'])) * weight_bkg
-    sumEFT = (len(EFT_dist['SM'])) * weightEFT
-    print(sumSM, sumEFT, sumbkg)
+    # check magnitudes of total events
+    #sumSM = (len(SM_dist['SM'])) * weight_sig
+    #sumbkg = (len(df_bkg['SM'])) * weight_bkg
+    #sumEFT = (len(EFT_dist['SM'])) * weightEFT
+    #print(sumSM, sumEFT, sumbkg)
 
     hist_SM = binned_EFT_node(SM_dist['SM'], weight_sig)
     hist_EFT = binned_EFT_node(EFT_dist['SM'], weightEFT)
@@ -345,11 +347,10 @@ def test_significance_EFT(filepath, EFT_name):
 
     fit_result, twice_nll_at_best_fit = pyhf.infer.mle.fit(data, model, return_uncertainties=True, return_fitted_val=True)
     pars, uncerts = fit_result.T
-    print(pars)
-    print(uncerts)
-    print(f"initialization parameters: {model.config.suggested_init()}")
+
+    print(f"initialization parameters for {EFT_name}: {model.config.suggested_init()}")
     print(
-        f"best fit parameters:\
+        f"best fit parameters for {EFT_name}:\
         \n * signal strength: {pars[0]}\
         \n * nuisance parameters: {pars[1:]}"
     )
@@ -357,22 +358,18 @@ def test_significance_EFT(filepath, EFT_name):
                                         model.config.suggested_bounds(),
                                             model.config.suggested_fixed())
 
-    print(tmu_tilde)
-
     p_value = get_p_val(pars[0], uncerts[0], tmu_tilde)
 
-    print(p_value)
-
     sigma = norm.ppf(1 - p_value)
-    print(sigma)
 
-    log_plot(data, model, twice_nll_at_best_fit, EFT_name)
+    # unmute if you want individual log plots for each EFT
+    #log_plot(data, model, twice_nll_at_best_fit, EFT_name)
 
-    return p_value, data, model, twice_nll_at_best_fit
+    return p_value, data, model, twice_nll_at_best_fit, sigma
 
 def log_plot(data, model, twice_nll_at_best_fit, data_list):
     
-    test_mus = np.linspace(0, 5, 20)
+    test_mus = np.linspace(0, 10, 40)
     log_plot = []
     for test_poi in test_mus:
         bestfit_pars, twice_nll = pyhf.infer.mle.fixed_poi_fit( 
@@ -396,7 +393,7 @@ def log_plot_multi(filepath, data, model, twice_nll_at_best_fit, data_list):
                 test_poi, data[i], model[i], return_fitted_val=True)
             #print(-2 * model.logpdf(bestfit_pars, data) == twice_nll)
             log_plot.append(twice_nll - twice_nll_at_best_fit[i])
-        ax.scatter(test_mus, log_plot, label = str(data_list[i]))
+        ax.scatter(test_mus, log_plot, label = str(data_list[i]), marker='x')
     
     ax.legend()
     ax.set_ylabel(r'$- 2ln(\frac{L(\mu, \hat{\hat{\theta}})}{L(\hat{\mu}, \hat{\theta})})$')

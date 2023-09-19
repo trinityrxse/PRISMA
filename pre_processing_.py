@@ -1,3 +1,10 @@
+
+'''
+
+Acquiring csv files of data once it has passed selection criteria
+
+'''
+
 import glob
 from selection_criteria import *
 from tqdm import tqdm
@@ -203,4 +210,6 @@ def pre_processing_loadout(filepath):
     for i in range(0, len(data_list)):
         pre_processing(filepath, data_list[i][0], root_bkg, data_list[i][1])
 
+    print('End of pre-processing')
+    return 
 

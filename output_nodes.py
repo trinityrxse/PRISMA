@@ -53,7 +53,7 @@ def get_EFT_nodes(y_test, y_pred):
 
     return SM_dist, EFT_dist
 
-def plot_nodes_EFT(filepath, y_test, y_pred, weightEFT, ret=False):
+def plot_nodes_EFT(filepath, y_test, y_pred, weightEFT, name, ret=False):
     SM_dist, EFT_dist = get_EFT_nodes(y_test, y_pred)
 
     weight_sig, weight_bkg, lumi = get_weights(filepath)  # weights & luminosity
@@ -71,14 +71,14 @@ def plot_nodes_EFT(filepath, y_test, y_pred, weightEFT, ret=False):
     ax.set_ylabel("Entries")
     ax.legend()
     plt.savefig(
-        f"{filepath}/SM_node.png")
+        f"{filepath}/SM_node_{name}.png")
     plt.show()
 
     if ret == True:
         return SM_dist, EFT_dist
 
 def plot_nodes_multiclassifier(filepath, y_array, y_pred, ret=False):
-    df_test = get_multiclassifier_nodes(filepath, y_array, y_pred)
+    df_test = get_multiclassifier_nodes(filepath, y_pred, y_array)
 
     cutVH = df_test[df_test["truth 0"] == 1]
     cutWWW = df_test[df_test["truth 1"] == 1]
@@ -125,7 +125,7 @@ def s_over_b(filepath, y_array, y_pred, type, graph=False):
     # plots events in final bin ie correctly predicted signal over events pred
     #       as signal but no actually signal
 
-    df_test = get_multiclassifier_nodes(filepath, y_array, y_pred)
+    df_test = get_multiclassifier_nodes(filepath, y_pred, y_array)
 
     # whole df, sorted descending order of predicted type
     df1 = df_test.sort_values(f'prediction {type}', ascending=False, ignore_index=True)
@@ -137,47 +137,52 @@ def s_over_b(filepath, y_array, y_pred, type, graph=False):
     sum_sig = 0
     index = 0
     for i in range(0, len(df2)):
-        if sum_sig < 1:
+        if sum_sig < 4:
             sum_sig += (df2.iloc[i][f"prediction {type}"]) * (df2.iloc[i]["weights"])
             index += 1
 
         else:
             continue
 
-    value = df2.iloc[index][f"prediction {type}"]
+    if index >= 1:
+        value = df2.iloc[index][f"prediction {type}"]
 
-    sum_bkg = 0
-    cut = (df1[f"truth {type}"] != 1.0) & (df1[f"prediction {type}"] > value)
-    df3 = df1[cut] #df of all events identified as type but actually aren't
+        sum_bkg = 0
+        cut = (df1[f"truth {type}"] != 1.0) & (df1[f"prediction {type}"] > value)
+        df3 = df1[cut] #df of all events identified as type but actually aren't
 
 
-    bkg = (df3[f"prediction {type}"]) * (df3["weights"])
-    sum_bkg = bkg.sum(axis='index')
+        bkg = (df3[f"prediction {type}"]) * (df3["weights"])
+        sum_bkg = bkg.sum(axis='index')
 
-    s_over_b = sum_sig / sum_bkg
+        s_over_b = sum_sig / sum_bkg
 
-    if graph is not False:
-        if type == '0':
-            label ='VH'
-        elif type == '1':
-            label = 'WWW'
+        if graph is not False:
+            if type == '0':
+                label ='VH'
+            elif type == '1':
+                label = 'WWW'
 
-        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
-        bins = np.linspace(0.9, 1, 40)
-        ax.hist([df2.iloc[0:index][f"prediction {type}"], df3.iloc[0:index][f"prediction {type}"]],
-                color=['red', 'blue'],
-                bins=bins,
-                histtype='step',
-                weights = [df2.iloc[0:index]["weights"], df3.iloc[0:index]["weights"]],
-                label=[f"Predicted {label}", f"Predicted not {label}"])
-        ax.set_yscale('log')
-        ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % 400, transform=ax.transAxes)
-        ax.set_xlabel(f"{label} node")
-        ax.set_ylabel("Entries")
-        ax.legend()
-        plt.show()
+            fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+            bins = np.linspace(0.9, 1, 40)
+            ax.hist([df2.iloc[0:index][f"prediction {type}"], df3.iloc[0:index][f"prediction {type}"]],
+                    color=['red', 'blue'],
+                    bins=bins,
+                    histtype='step',
+                    weights = [df2.iloc[0:index]["weights"], df3.iloc[0:index]["weights"]],
+                    label=[f"Predicted {label}", f"Predicted not {label}"])
+            ax.set_yscale('log')
+            ax.text(0.55, 0.95, "${\\cal L}=%3.0f$/fb" % 400, transform=ax.transAxes)
+            ax.set_xlabel(f"{label} node")
+            ax.set_ylabel("Entries")
+            ax.legend()
+            plt.show()
 
-    return s_over_b
+        return s_over_b
+    
+    else:
+
+        return 'NaN'
 
 
 def get_delta_node(filepath, y_array, y_pred):
@@ -214,6 +219,8 @@ def get_delta_node(filepath, y_array, y_pred):
     ax.set_xlabel(f'Delta Node')
     ax.set_ylabel("Entries")
     ax.legend()
+    plt.savefig(
+        f"{filepath}/Delta_node.png")
     plt.tight_layout()
     plt.show()
 
