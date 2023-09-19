@@ -42,10 +42,10 @@ main.py : everything you need to perform the analysis (plots, print statements) 
           generates data and trains models if you are running on your computer for the first time
 
 requirements.txt : environment required to run project, run the following in your terminal:
-                # using pip
+                using pip
                 pip install -r requirements.txt
             
-                # using Conda
+                using Conda
                 conda create --name <env_name> --file requirements.txt
 
 HWW_WHFalpha1lowpt.cxx : C++ code adapted to obtain the F_alpha variable for the selection_criteria module
