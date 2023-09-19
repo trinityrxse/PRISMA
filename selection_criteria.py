@@ -40,8 +40,8 @@ def get_weights(filepath):
     n_sig = lumi * xSection_sig * 1000
     n_bkg = lumi * xSection_bkg * 1000
 
-    weight_sig = (n_sig / N_root_sig) / 10 
-    weight_bkg = (n_bkg / N_root_bgk) / 10
+    weight_sig = (n_sig / N_root_sig) / 10 # this is because of weightings in simulated data being wrong
+    weight_bkg = (n_bkg / N_root_bgk) / 10 # with other data, do not have /10
 
     return weight_sig, weight_bkg, lumi
 
@@ -65,7 +65,8 @@ def get_weights_EFT(filepath, EFTname):
 
     n_sig = lumi * xSection_sig * 1000
 
-    weight_sig = (n_sig / N_root_sig) / 10
+    weight_sig = (n_sig / N_root_sig) / 10  / 10 # this is because of weightings in simulated data being wrong
+                                                # with other data, do not have /10
 
     return weight_sig
 

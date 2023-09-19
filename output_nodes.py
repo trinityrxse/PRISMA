@@ -78,7 +78,7 @@ def plot_nodes_EFT(filepath, y_test, y_pred, weightEFT, name, ret=False):
         return SM_dist, EFT_dist
 
 def plot_nodes_multiclassifier(filepath, y_array, y_pred, ret=False):
-    df_test = get_multiclassifier_nodes(filepath, y_pred, y_array)
+    df_test = get_multiclassifier_nodes(filepath, y_array, y_pred)
 
     cutVH = df_test[df_test["truth 0"] == 1]
     cutWWW = df_test[df_test["truth 1"] == 1]
@@ -113,6 +113,7 @@ def plot_nodes_multiclassifier(filepath, y_array, y_pred, ret=False):
         ax.set_xlabel(f"{var} Output Node")
         ax.set_ylabel("Entries")
         ax.legend(loc='upper left')
+        plt.savefig(f'{filepath}/output_node_{var}')
         plt.show()
 
         array_list.append(array_list_X)

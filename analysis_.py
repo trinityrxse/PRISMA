@@ -386,14 +386,14 @@ def log_plot(data, model, twice_nll_at_best_fit, data_list):
 def log_plot_multi(filepath, data, model, twice_nll_at_best_fit, data_list):
     fig, ax = plt.subplots(1, 1, figsize=(12, 6))
     for i in range(0, len(data_list)):
-        test_mus = np.linspace(0, 5, 20)
+        test_mus = np.linspace(0, 10, 40)
         log_plot = []
         for test_poi in test_mus:
             bestfit_pars, twice_nll = pyhf.infer.mle.fixed_poi_fit( 
                 test_poi, data[i], model[i], return_fitted_val=True)
             #print(-2 * model.logpdf(bestfit_pars, data) == twice_nll)
             log_plot.append(twice_nll - twice_nll_at_best_fit[i])
-        ax.scatter(test_mus, log_plot, label = str(data_list[i]), marker='x')
+        ax.plot(test_mus, log_plot, label = str(data_list[i]), marker='x')
     
     ax.legend()
     ax.set_ylabel(r'$- 2ln(\frac{L(\mu, \hat{\hat{\theta}})}{L(\hat{\mu}, \hat{\theta})})$')

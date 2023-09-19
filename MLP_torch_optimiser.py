@@ -155,24 +155,10 @@ def train_MLP_multiclassifier(filepath):
                 "dropout": [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
                 "activation": 'silu',
                 "lr": 0.01}
-        config18 = {"hidden_layers": [1080, 512, 264, 128, 64, 32, 24, 16, 8, 4],
-                "dropout": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-                "activation": 'silu',
-                "lr": 0.1}
-        config19 = {"hidden_layers": [102, 90, 75, 69, 54, 48, 36, 27, 18, 9],
-                "dropout": [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
-                "activation": 'silu',
-                "lr": 0.1}
-        config20 = {"hidden_layers": [102, 90, 75, 69, 54, 48, 36, 27, 18, 9],
-                "dropout": [0.37, 0.3, 0.26, 0.21, 0.2, 0, 0, 0, 0],
-                "activation": 'silu',
-                "lr": 0.01}
-
-
 
         configs = [config1, config2, config3, config4, config5, config6, config7,
                    config8, config9, config10, config11, config12, config13,
-                   config14, config15, config16, config17, config18, config19, config20]
+                   config14, config15, config16, config17]
 
         config_count=0
         accuracies = []

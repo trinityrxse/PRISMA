@@ -38,8 +38,8 @@ if __name__ == '__main__':
 
     filepath = '/localscratch' # put your filepath where you want figures / models / data saved
 
-    best_MLP = 12 # look by eye at graphs and choose the best for node distinction
-    best_EFT_C = 1 # same here
+    best_MLP = 10 # look by eye at graphs and choose the best for node distinction
+    best_EFT_C = 3 # same here
     
     if os.path.exists(f"{filepath}/df_preprocessed_.csv") is False: # check datasets exist
         pre_processing_loadout(filepath)
@@ -52,8 +52,8 @@ if __name__ == '__main__':
 
     else:
 
-        print(best_MLP)
-        print(best_EFT_C)
+        print('Best config for multiclassifier: ', best_MLP)
+        print('Best config for EFT / SM distinction: ', best_EFT_C)
 
         #test significance of Higgs signal above bkg
         sigma_VH = multiclassifier_results(filepath, best_MLP, full_graphs=True)
@@ -85,7 +85,6 @@ if __name__ == '__main__':
             print('Significance of ', data_list[i], ': ', sigmas[i], r' $\sigma$')
 
         log_plot_multi(filepath, data, models, twice_nll_opt, data_list)
-
 
 
 
